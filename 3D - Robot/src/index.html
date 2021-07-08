@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Computer Graphics HW</title>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.0/css/bootstrap.min.css" integrity="sha384-SI27wrMjH3ZZ89r4o+fGIJtnzkAnFs3E4qz9DIYioCQ5l9Rd/7UAa8DHcaL8jkWt" crossorigin="anonymous">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/roundSlider/1.3.2/roundslider.min.css" rel="stylesheet" />
+
+    <script id="vertex-shader" type="x-shader/x-vertex">
+            
+            uniform mat4 modelViewMatrix;
+            uniform mat4 projectionMatrix;
+        
+            attribute  vec3 vNormal;
+            attribute vec4 vPosition;
+            varying vec4 fColor;
+
+            uniform float move;
+
+            uniform float dRColor;
+            uniform float dGColor;
+            uniform float dBColor;
+            uniform float transparency;
+            uniform float shininess;            
+            uniform vec4 lightPosition, ambientProduct, diffuseProduct, specularProduct;
+
+            void main(){
+                vec3 pos = -(modelViewMatrix * vPosition).xyz;
+                vec3 light = lightPosition.xyz;
+
+                vec3 L = normalize( light - pos );
+                vec3 E = normalize( -pos );
+                vec3 H = normalize( L + E );
+
+                vec4 NN = vec4(vNormal, 0);
+
+                vec3 N = normalize((modelViewMatrix * NN).xyz);
+
+                vec4 ambient = ambientProduct;
+
+                float Kd = max( dot(L, N), 0.0 );
+                vec4  diffuse = Kd * diffuseProduct;
+
+                float Ks = pow( max(dot(N, H), 0.0), shininess );
+                vec4  specular = Ks * specularProduct;
+                
+                if( dot(L, N) < 0.0 ) {
+                    specular = vec4(0.0, 0.0, 0.0, 1.0);
+                }
+
+                gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+
+                fColor = ambient + diffuse + specular;
+
+                fColor.w = 1.0;
+
+                fColor.x = fColor.x + dRColor;
+                fColor.y = fColor.y + dGColor;
+                fColor.z = fColor.z + dBColor;
+                fColor.w = fColor.w - transparency;
+            }
+        </script>
+
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+            varying vec4 fColor;
+            void main(){
+                gl_FragColor = fColor;
+            }
+        </script>
+
+    <script type="text/javascript" src="webgl-utils.js"></script>
+    <script type="text/javascript" src="initShaders.js"></script>
+    <script type="text/javascript" src="MV.js"></script>
+    <script type="text/javascript" src="index.js"></script>
+</head>
+
+<body>
+
+    <div class="jumbotron jumbotron-fluid">
+        <div class="container">
+            <h1 class="display-4">Egemen Ekici</h1>
+            <p class="lead">16290092</p>
+        </div>
+    </div>
+
+
+    <div class="container" style="margin-top: 25px;">
+
+        <div class="row" style="width: 640px;">
+            <div class="col">
+                <div class="btn-group btn-group-toggle" id="projections" data-toggle="buttons">
+                    <label class="btn btn-secondary active">
+                        <input type="radio" name="options" id="option1" autocomplete="off" checked> Orthogonal
+                    </label>
+                    <label class="btn btn-secondary">
+                        <input type="radio" name="options" id="option2" autocomplete="off"> Perspective
+                    </label>
+                </div>
+            </div>
+            <div class="col" style="margin-right: 200px;">
+                <div class="custom-control custom-checkbox" style="margin-top: 10px;">
+                    <input type="checkbox" class="custom-control-input" id="wireframe">
+                    <label class="custom-control-label" for="wireframe">Wireframe</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="row" style="margin-top: 10px;">
+            <div class="col">
+                <div class="card shadow-lg" style="width: 642px; height: 362px; ">
+                    <canvas id="gl-canvas"
+                        style="background: url('src/1.jpg'); background-size: 100% 100%; border-radius: 3px;"
+                        width="640" height="360">
+                        Your browser does not support HTML5!
+                    </canvas>
+                </div>
+            </div>
+            <div class="col">
+                <div class="container">
+                    <div class="row" style="width: 96px; height: 48px;">
+                        <div class="col" style="width: 48px; height: 48px;">
+                            
+                        </div>
+                        <div class="col" style="width: 48px; height: 48px; margin-right: 7px;">
+                            <img id="wImg" src="src/W.png" width="45" height="45" />
+                        </div>
+                    </div>
+                    <div class="row" style="width: 144px; height: 48px;">
+                        <div class="col" style="width: 48px; height: 48px;">
+                            <img id="aImg" src="src/A.png" width="45" height="45" />
+                        </div>
+                        <div class="col " style="width: 48px; height: 48px;">
+                            <img id="sImg" src="src/S.png" width="45" height="45" />
+                        </div>
+                        <div class="col" style="width: 48px; height: 48px;">
+                            <img id="dImg" src="src/D.png" width="45" height="45" />
+                        </div>                      
+                    </div>
+                    <div class="row" style="margin-top: 18px;">
+                        <div id="dRColor"></div>
+                        <div id="dGColor" style="margin-left: 10px; margin-right: 10px;"></div>
+                        <div id="dBColor" style="margin-right: 10px;"></div>
+                        <div id="transparency"></div>
+                    </div>
+                    <div class="card shadow-lg row" style="margin-top: 25px;">
+                        
+                        <div id="lightPosition"></div>
+
+                        <div class="col">
+                            <div class="row justify-content-center"  style="margin: 10px;">
+                                <input type="range" min="-16" max="16" step="0.5" value="0" id="lX"/>
+                            </div>
+                            <div class="row justify-content-center" style="margin: 10px;">
+                                <input type="range" min="-18" max="18" step="0.5" value="0" id="lY"/>
+                            </div>
+                            <div class="row justify-content-center" style="margin: 10px;">
+                                <input type="range" min="15" max="100" step="0.5" value="15" id="lZ"/>
+                            </div> 
+                        </div>                       
+                    </div>
+
+                    <div class="row" style="margin-top: 10px;">
+                        
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
+        integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+        integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous">
+    </script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.0/js/bootstrap.min.js"
+        integrity="sha384-3qaqj0lc6sV/qpzrc1N5DC6i1VRn/HyX4qdPaiEFbn54VjQBEU341pvjz7Dv3n6P" crossorigin="anonymous">
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/roundSlider/1.3.2/roundslider.min.js"></script>
+
+    <style>
+        #dRColor .rs-range-color {
+            background-color: rgb(245, 60, 60);
+        }
+
+        #dGColor .rs-range-color {
+            background-color: rgb(73, 187, 73);
+        }
+
+        #dBColor .rs-range-color {
+            background-color: rgb(40, 40, 196);
+        }
+
+        #lightPosition  {
+            height: 100px !important;
+            width: 100% !important;
+            overflow: hidden;
+            padding: 10px;
+        }
+
+        #lightPosition .rs-range-color{
+            background-color: rgb(255, 208, 0);
+        }
+        
+        #lightPosition .rs-tooltip  {
+            top: 70px;
+        }
+
+        .center {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width: 50%;
+        }
+
+    </style>
+</body>
+
+</html>
+
+<!--
+
+    
+
+
+    <div class="row">
+                            <div class="col">
+                                <img id="w" src="src/W.png" width="32" height="32" />
+                            </div>
+                            <p class="col text-left">Left aligned text on all viewport sizes.</p>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <img id="a" src="src/A.png" width="32" height="32" />
+                            </div>
+                            <label for="a"  class="col col-form-label">A</label>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <img id="s" src="src/S.png" width="32" height="32" />
+                            </div>
+                            <label for="s" class="col col-form-label">S</label>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <img id="d" src="src/D.png" width="32" height="32" />
+                            </div>
+                            <label for="d" class="col col-form-label">D</label>
+                        </div>
+
+-->
